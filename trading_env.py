@@ -17,26 +17,34 @@ class trading_env(gym.envs):
         self.observation_space = self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float32)  # State variables: Price, Position, Log Return window of 5
 # -------------------------------------------------------
         # Indicators to be in observation space
+        price_ser = pd.Series(self.prices)
+        vol_ser = pd.Series(self.volumes)
 
         # Trend
-        self.sma_10 = self.rolling_mean(self.prices, 10)
-        self.sma_20 = self.rolling_mean(self.prices, 20)
+        self.sma_10 = price_ser.rolling(window=10).mean().values
+        self.sma_20 = price_ser.rolling(window=20).mean().values
         self.sma_cross = self.sma_10 - self.sma_20
 
         # Momentum
-        self.rsi_14 = self.compute_rsi(14)
-        self.macd = self.compute_macd(self.prices)
+        delta = price_ser.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / (loss + 1e-8)
+        self.rsi_14 = (100 - (100 / (1 + rs))).values
+        ema_12 = price_ser.ewm(span=12, adjust=False).mean()
+        ema_26 = price_ser.ewm(span=26, adjust=False).mean()
+        self.macd = (ema_12 - ema_26).values
 
         # Volatility
-        self.stdev_20 = self.rolling_std(self.prices, 20)
+        self.stdev_20 = price_ser.rolling(window=20).std().values
 
         # Volume
-        vol_mean_20 = self.rolling_mean(self.volumes, 20)
-        self.volume_ratio = self.volumes / (vol_mean_20 + 1e-8)
-        self.volume_trend = self.rolling_mean(np.diff(self.volumes, prepend=np.nan), 10)
+        vol_mean_20 = vol_ser.rolling(window=20).mean()
+        self.volume_ratio = (vol_ser / (vol_mean_20 + 1e-8)).values
+        self.volume_trend = vol_ser.diff().rolling(window=10).mean().values
 
         # Price
-        self.returns = np.diff(np.log(price_data), prepend=np.nan)
+        self.returns = np.diff(np.log(self.prices), prepend=np.log(self.prices[0]))
 # -------------------------------------------------------
         # State variables: Position, SMA20, SMA Cross, RSI, MACD, Stdev (Window = 1)
         # Returns, Vol Ratio, Vol Trend (Window = 10)
@@ -67,6 +75,7 @@ class trading_env(gym.envs):
         elif action == 2:
             self.position = 1
 
+        self.cash = self.cash - (self.position - prev_position) * self.prices[self.current_step]
         price_change = self.prices[self.current_step] - self.prices[self.current_step - 1]
         reward = prev_position * price_change
         if self.position != prev_position:
@@ -88,11 +97,11 @@ class trading_env(gym.envs):
         state = np.concatenate([
             np.array([
                 self.position,
-                self.sma_20[self.current_step],
-                self.sma_cross[self.current_step],
-                self.rsi_14[self.current_step],
-                self.macd[self.current_step],
-                self.stdev_20[self.current_step],
+                self.sma_20,
+                self.sma_cross,
+                self.rsi_14,
+                self.macd,
+                self.stdev_20,
             ]),
             r_window,
             vr_window,
@@ -100,29 +109,4 @@ class trading_env(gym.envs):
         ])
 
         return np.nan_to_num(state).astype(np.float32)
-
-    def rolling_mean(self, arr, window):
-        return np.mean(arr[self.current_step-window:self.current_step])
-
-    def rolling_std(self, arr, window):
-        return np.std(arr[self.current_step - window:self.current_step])
-
-    def compute_rsi(self, n):
-        deltas = np.diff(self.prices, prepend=np.nan)
-        gains = np.maximum(deltas, 0)
-        losses = -np.minimum(deltas, 0)
-
-        avg_gain = self.rolling_mean(gains, n)
-        avg_loss = self.rolling_mean(losses, n)
-
-        rs = avg_gain / (avg_loss + 1e-8)
-        return 100 - (100 / (1 + rs))
-
-    def ema(self, x, span):
-        return pd.Series(x).ewm(span=span, adjust=False).mean().values
-
-    def compute_macd(self, prices):
-        ema_12 = self.ema(prices, 12)
-        ema_26 = self.ema(prices, 26)
-        return ema_12 - ema_26
 
