@@ -97,11 +97,11 @@ class trading_env(gym.envs):
         state = np.concatenate([
             np.array([
                 self.position,
-                self.sma_20,
-                self.sma_cross,
-                self.rsi_14,
-                self.macd,
-                self.stdev_20,
+                self.sma_20[self.current_step],
+                self.sma_cross[self.current_step],
+                self.rsi_14[self.current_step],
+                self.macd[self.current_step],
+                self.stdev_20[self.current_step],
             ]),
             r_window,
             vr_window,
