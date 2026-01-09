@@ -112,8 +112,8 @@ class trading_env(gym.envs):
         gains = np.maximum(deltas, 0)
         losses = -np.minimum(deltas, 0)
 
-        avg_gain = self._rolling_mean(gains, n)
-        avg_loss = self._rolling_mean(losses, n)
+        avg_gain = self.rolling_mean(gains, n)
+        avg_loss = self.rolling_mean(losses, n)
 
         rs = avg_gain / (avg_loss + 1e-8)
         return 100 - (100 / (1 + rs))
