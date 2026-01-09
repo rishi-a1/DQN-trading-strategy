@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 from gym import spaces
-
+import pandas as pd
 
 class trading_env(gym.envs):
     def __init__(self, price_data, volumes, window_size=10, transaction_cost=0.001, cash=10000):
@@ -24,7 +24,7 @@ class trading_env(gym.envs):
         self.sma_cross = self.sma_10 - self.sma_20
 
         # Momentum
-        self.rsi_14 = self.compute_rsi(self.prices, 14)
+        self.rsi_14 = self.compute_rsi(14)
         self.macd = self.compute_macd(self.prices)
 
         # Volatility
@@ -67,7 +67,7 @@ class trading_env(gym.envs):
         elif action == 2:
             self.position = 1
 
-        price_change = self.prices[self.t] - self.prices[self.t - 1]
+        price_change = self.prices[self.current_step] - self.prices[self.current_step - 1]
         reward = prev_position * price_change
         if self.position != prev_position:
             reward -= self.transaction_cost
@@ -75,8 +75,8 @@ class trading_env(gym.envs):
         self.total_reward += reward
         self.current_step += 1
         self.portfolio_value = self.cash + self.position * self.prices[self.current_step]
-        done = self.t >= len(self.prices) - 1
-        return self._get_state(), reward, done, False, {}
+        done = self.current_step >= len(self.prices) - 1
+        return self.get_state(), reward, done, False, {}
 
     def get_state(self):
         # Getting the windows of price data for the 3 metrics: returns, volume ratio, volume trend - when reset the
@@ -118,4 +118,11 @@ class trading_env(gym.envs):
         rs = avg_gain / (avg_loss + 1e-8)
         return 100 - (100 / (1 + rs))
 
-    def
+    def ema(self, x, span):
+        return pd.Series(x).ewm(span=span, adjust=False).mean().values
+
+    def compute_macd(self, prices):
+        ema_12 = self.ema(prices, 12)
+        ema_26 = self.ema(prices, 26)
+        return ema_12 - ema_26
+
