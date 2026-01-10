@@ -64,7 +64,7 @@ class trading_env(gym.envs):
         self.total_reward = 0
         self.cash = 100000
         self.portfolio_value = self.cash
-        return self._get_state(), {}
+        return self.get_state(), {}
 
     def step(self, action):
         prev_position = self.position
@@ -90,9 +90,11 @@ class trading_env(gym.envs):
     def get_state(self):
         # Getting the windows of price data for the 3 metrics: returns, volume ratio, volume trend - when reset the
         # environment starts at step 26 so MACD and the other metrics can all be calculated without issue
-        r_window = self.returns[self.current_step - self.window_size:self.current_step]
-        vr_window = self.volume_ratio[self.current_step - self.window_size:self.current_step]
-        vt_window = self.volume_trend[self.current_step - self.window_size:self.current_step]
+        start = self.current_step - self.window_size + 1
+        end = self.current_step+1
+        r_window = self.returns[start:end]
+        vr_window = self.volume_ratio[start:end]
+        vt_window = self.volume_trend[start:end]
 
         state = np.concatenate([
             np.array([
