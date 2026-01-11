@@ -3,7 +3,7 @@ import numpy as np
 from gym import spaces
 import pandas as pd
 
-class trading_env(gym.envs):
+class trading_env(gym.Env):
     def __init__(self, price_data, volumes, window_size=10, transaction_cost=0.001, cash=10000):
         super(trading_env, self).__init__()
         self.portfolio_value = cash
@@ -14,7 +14,7 @@ class trading_env(gym.envs):
         self.window_size = window_size
         self.transaction_cost = transaction_cost
         self.current_step = 0  # defines the time/trading days elapsed since the start of the learning period
-        self.observation_space = self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float32)  # State variables: Price, Position, Log Return window of 5
+        self.observation_space = self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(36,), dtype=np.float32)  # State variables: Price, Position, Log Return window of 5
 # -------------------------------------------------------
         # Indicators to be in observation space
         price_ser = pd.Series(self.prices)
@@ -70,7 +70,7 @@ class trading_env(gym.envs):
         prev_position = self.position
         if action == 0:
             self.position = -1
-        if action == 1:
+        elif action == 1:
             self.position = 0
         elif action == 2:
             self.position = 1
@@ -82,8 +82,8 @@ class trading_env(gym.envs):
             reward -= self.transaction_cost
             self.cash -= self.transaction_cost
         self.total_reward += reward
-        self.current_step += 1
         self.portfolio_value = self.cash + self.position * self.prices[self.current_step]
+        self.current_step += 1
         done = self.current_step >= len(self.prices) - 1
         return self.get_state(), reward, done, False, {}
 
