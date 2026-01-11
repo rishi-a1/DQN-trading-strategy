@@ -16,27 +16,31 @@ class trading_env(gym.Env):
         self.current_step = 0  # defines the time/trading days elapsed since the start of the learning period
         self.observation_space = self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(36,), dtype=np.float32)  # State variables: Price, Position, Log Return window of 5
 # -------------------------------------------------------
-        # Indicators to be in observation space
+        # Indicators to be in observation space setup
         price_ser = pd.Series(self.prices)
         vol_ser = pd.Series(self.volumes)
-
-        # Trend
+        price_mean = np.mean(self.prices)
+        price_std = np.std(self.prices)
+        # Trend (Normalized)
         self.sma_10 = price_ser.rolling(window=10).mean().values
         self.sma_20 = price_ser.rolling(window=20).mean().values
-        self.sma_cross = self.sma_10 - self.sma_20
+        self.sma_20 = (self.sma_20 - price_mean) / (price_std + 1e-8)
+        self.sma_cross = (self.sma_10 - self.sma_20) / (price_std + 1e-8)
 
-        # Momentum
+        # Momentum (Normalized)
         delta = price_ser.diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
         rs = gain / (loss + 1e-8)
         self.rsi_14 = (100 - (100 / (1 + rs))).values
+        self.rsi_14 = (self.rsi_14 - 50) / 50
         ema_12 = price_ser.ewm(span=12, adjust=False).mean()
         ema_26 = price_ser.ewm(span=26, adjust=False).mean()
         self.macd = (ema_12 - ema_26).values
+        self.macd = (self.macd - np.nanmean(self.macd)) / (np.nanstd(self.macd) + 1e-8)
 
-        # Volatility
-        self.stdev_20 = price_ser.rolling(window=20).std().values
+        # Volatility (Normalized)
+        self.stdev_20 = (price_ser.rolling(window=20).std() / (price_std + 1e-8)).values
 
         # Volume
         vol_mean_20 = vol_ser.rolling(window=20).mean()
