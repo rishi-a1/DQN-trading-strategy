@@ -1,5 +1,5 @@
 
-# importing modules and setting up  
+# importing modules and setting up
 import math
 import random
 import matplotlib
