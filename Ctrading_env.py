@@ -4,15 +4,16 @@ from gym import spaces
 import pandas as pd
 
 class trading_env(gym.Env):
-    def __init__(self, price_data, volumes, window_size=10, transaction_cost=0.001, cash=10000):
+
+    def __init__(self, price_data, volumes, window_size=10, transaction_cost=0.001, cash=0):
         super(trading_env, self).__init__()
         self.portfolio_value = cash
         self.cash = cash
-        self.action_space = spaces.Discrete(3)  # Actions in MDP: buy, hold, sell
+        self.action_space = spaces.Discrete(2)  # Actions in MDP: flat, long
         self.prices = price_data  # puts the prices of the stock in the environment
-        self.volumes = volumes
+        self.volumes = volumes  # puts the volumes of the stocks traded in the environment
+        self.transaction_cost = transaction_cost  # initialising to value of transaction whatever exchange
         self.window_size = window_size
-        self.transaction_cost = transaction_cost
         self.current_step = 0  # defines the time/trading days elapsed since the start of the learning period
         self.observation_space = self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(36,), dtype=np.float32)  # State variables: Price, Position, Log Return window of 5
 # -------------------------------------------------------
@@ -66,27 +67,50 @@ class trading_env(gym.Env):
         self.current_step = max(26, self.window_size)
         self.position = 0
         self.total_reward = 0
-        self.cash = 100000
+        self.cash = 0
         self.portfolio_value = self.cash
+        self.cumulative_return = 0.0
+        self.peak_return = 0.0
         return self.get_state(), {}
 
     def step(self, action):
         prev_position = self.position
         if action == 0:
-            self.position = -1
-        elif action == 1:
             self.position = 0
-        elif action == 2:
+        elif action == 1:
             self.position = 1
 
-        self.cash = self.cash - (self.position - prev_position) * self.prices[self.current_step]
-        price_change = self.prices[self.current_step] - self.prices[self.current_step - 1]
-        reward = prev_position * price_change
-        if self.position != prev_position:
-            reward -= self.transaction_cost
-            self.cash -= self.transaction_cost
-        self.total_reward += reward
+        # --- Portfolio accounting (single transaction cost deduction) ---
+        trade_size = abs(self.position - prev_position)
+        cost = trade_size * self.transaction_cost * self.prices[self.current_step]
+        self.cash = self.cash - (self.position - prev_position) * self.prices[self.current_step] - cost
+
+        # --- Reward components ---
+        log_return = np.log(self.prices[self.current_step] / self.prices[self.current_step - 1])
+
+        # 1. Risk-adjusted PnL: reward log return earned by the position held
+        pnl_reward = prev_position * log_return
+
+        # 2. Transaction cost penalty (proportional, consistent units with pnl_reward)
+        tc_penalty = trade_size * self.transaction_cost
+
+        # 3. Holding penalty: small nudge to discourage indefinite flat positions
+        holding_penalty = 0.0001 if self.position == 0 else 0.0
+
+        # 4. Drawdown penalty: track cumulative log-return drawdown (price-normalised, no cash blow-up)
         self.portfolio_value = self.cash + self.position * self.prices[self.current_step]
+        self.cumulative_return += pnl_reward
+        self.peak_return = max(self.peak_return, self.cumulative_return)
+        drawdown = self.peak_return - self.cumulative_return  # always >= 0, same units as pnl_reward
+        drawdown_penalty = 0.1 * drawdown
+
+        # 5. Volatility penalty: discourage holding large positions in high-volatility regimes
+        recent_vol = self.stdev_20[self.current_step]
+        vol_penalty = 0.05 * abs(self.position) * max(recent_vol - 1.0, 0.0)
+
+        reward = pnl_reward - tc_penalty - holding_penalty - drawdown_penalty - vol_penalty
+
+        self.total_reward += reward
         self.current_step += 1
         done = self.current_step >= len(self.prices) - 1
         return self.get_state(), reward, done, False, {}
@@ -115,4 +139,3 @@ class trading_env(gym.Env):
         ])
 
         return np.nan_to_num(state).astype(np.float32)
-

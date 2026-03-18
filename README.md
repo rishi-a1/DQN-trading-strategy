@@ -10,7 +10,6 @@ MDP structure:
   Actions:
     Buy
     Hold
-    Sell
   Transition Function:
     DQN is used so the function used is an approximation of the target function using a neural network
   Reward:
@@ -23,6 +22,7 @@ Network structure:
 MSE loss used
 
 Data:
+
 
 Evaluation:
 
