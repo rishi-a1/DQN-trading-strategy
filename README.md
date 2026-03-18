@@ -4,7 +4,7 @@ financial markets rather than generate deployable alpha.
 
 MDP structure:
   State variables:
-    State Position (Buy, Hold, Sell)
+    State Position (Buy, Hold)
     Log Return Window of 10 past states
     Volatility
   Actions:
