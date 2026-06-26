@@ -1,5 +1,5 @@
 # DQN-trading-strategy
-Wobbles: A vanilla DQN single asset trading agent aimed to optimize trades in x on a daily frequency. Main goal is to explore the use of reinforcement learning in
+Wobbles: A vanilla DQN single asset trading agent aimed to optimize trades on a daily frequency. Main goal is to explore the use of reinforcement learning in
 financial markets rather than generate deployable alpha.
 
 MDP structure:
