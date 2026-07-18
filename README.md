@@ -2,7 +2,7 @@
 
 > **Failed experiment**
 
-Wobbles is a reinforcement learning agent that learns to trade SPY (S&P 500 ETF) at daily frequency using a vanilla Deep Q-Network. The goal was to apply a classic RL algorithm to a financial time series.
+Wobbles is a reinforcement learning agent that attempted to learn to trade SPY (S&P 500 ETF) at daily frequency using a vanilla Deep Q-Network. The goal was to apply a classic RL algorithm to a financial time series.
 
 ---
 
@@ -104,9 +104,9 @@ SPY is too efficient - a 128→64→2 network trained on 4 years of daily data h
 
 The engineering is clean thanks to documentation given by Gym and PyTorch:
 
-- The custom Gym environment is properly structured and reusable — you can drop in any single-asset price/volume series and it just works
-- The reward shaping (transaction cost + drawdown + vol penalty) feels logical, though the approach may have been flawed
-- The backtest separates training and evaluation periods correctly and computes real metrics (Sharpe, max drawdown, action distribution)
+- The custom Gym environment is properly structured and reusable
+- The reward shaping feels logical, though the approach may have been flawed
+- The backtest separates training and evaluation periods correctly and computes metrics
 
 ---
 
