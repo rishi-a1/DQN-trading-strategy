@@ -102,7 +102,7 @@ SPY is too efficient - a 128→64→2 network trained on 4 years of daily data h
 
 ## What Actually Worked 
 
-The engineering is clean thanks to documentation given by Gym:
+The engineering is clean thanks to documentation given by Gym and PyTorch:
 
 - The custom Gym environment is properly structured and reusable — you can drop in any single-asset price/volume series and it just works
 - The reward shaping (transaction cost + drawdown + vol penalty) feels logical, though the approach may have been flawed
