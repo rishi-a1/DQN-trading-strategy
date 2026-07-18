@@ -1,8 +1,8 @@
 # Wobbles — A Vanilla DQN Single-Asset Trading Agent
 
-> **Status: Failed experiment. Kept public because the failure modes are instructive.**
+> **Failed experiment**
 
-Wobbles is a reinforcement learning agent that learns to trade SPY (S&P 500 ETF) at daily frequency using a vanilla Deep Q-Network. The goal was never to generate deployable alpha — it was to understand what happens when you naively apply a classic RL algorithm to a financial time series.
+Wobbles is a reinforcement learning agent that learns to trade SPY (S&P 500 ETF) at daily frequency using a vanilla Deep Q-Network. The goal was to apply a classic RL algorithm to a financial time series.
 
 ---
 
